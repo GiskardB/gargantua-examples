@@ -1,0 +1,21 @@
+# Build output
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.settings/
+.project
+.classpath
+.vscode/
+
+# Local config (per-example .env files contain secrets)
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
