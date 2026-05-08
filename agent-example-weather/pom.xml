@@ -22,6 +22,14 @@
     and a real external HTTP integration (Open-Meteo) — no API key needed.
   </description>
 
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <properties>
     <java.version>21</java.version>
     <!-- Gargantua framework coords on JitPack. To consume a tagged release

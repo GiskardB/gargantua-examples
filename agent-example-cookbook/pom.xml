@@ -22,6 +22,14 @@
     skills, tools, flows, RAG, structured output, HITL and RBAC examples.
   </description>
 
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <properties>
     <java.version>21</java.version>
     <!-- Gargantua framework coords on JitPack. To consume a tagged release
