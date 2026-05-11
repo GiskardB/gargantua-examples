@@ -117,29 +117,24 @@ class SkillAnnotationApplicationTest {
         assertEquals(0.0, temp, 0.0001);
     }
 
-    // ── Documentary: integration with SkillRegistry not yet wired ──
+    // ── Integration with SkillRegistry (1.2.7+) ────────────────────
 
-    /*
-     * As of framework v1.2.6, AgentSkillProcessor *discovers* @AgentSkill
-     * classes but the SkillRegistry composite (FilesystemSkillRegistry +
-     * ClasspathSkillsJarRegistry) does not consume the discovered list.
-     * Net effect: skills declared via @AgentSkill are visible through
-     * AgentSkillProcessor.getDiscoveredSkills() but not through
-     * SkillRegistry.findMeta() / SkillRegistry.load(), so the chat router
-     * cannot select them.
-     *
-     * This is tracked as an open framework gap in
-     * project_per_feature_examples_progress.md and will be closed in a
-     * subsequent framework release. The assertion below pins the *current*
-     * behaviour as a regression watch — flip it to assertTrue once the
-     * SkillRegistry wires AgentSkillProcessor in.
-     */
     @Test
-    @DisplayName("[regression watch] SkillRegistry does NOT yet include the @AgentSkill skill (gap)")
-    void skillRegistryDoesNotYetSeeAnnotatedSkill() {
-        boolean inRegistry = skillRegistry.findMeta("java-calculator").isPresent();
-        assertFalse(inRegistry,
-                "If this test starts failing, the framework has been fixed — flip it "
-                        + "to assertTrue and update the README's 'Open gaps' section.");
+    @DisplayName("SkillRegistry.findMeta sees the annotated skill (1.2.7+ wiring)")
+    void skillRegistryFindsAnnotatedSkill() {
+        var meta = skillRegistry.findMeta("java-calculator");
+        assertTrue(meta.isPresent(),
+                "AnnotatedSkillRegistry should expose @AgentSkill classes");
+        assertEquals(SkillSource.ANNOTATION, meta.get().source());
+    }
+
+    @Test
+    @DisplayName("SkillRegistry.load returns the full SkillCard built from the @AgentSkill class")
+    void skillRegistryLoadsAnnotatedSkill() {
+        var card = skillRegistry.load("java-calculator");
+        assertEquals("java-calculator", card.meta().name());
+        assertTrue(card.systemPrompt().contains("precise arithmetic assistant"));
+        assertTrue(card.allowedTools().contains("add"));
+        assertTrue(card.allowedTools().contains("multiply"));
     }
 }

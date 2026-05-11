@@ -103,54 +103,42 @@ boots the full Spring context in the `embedded` profile and asserts:
 | `systemPromptFromPromptField`              | `systemPrompt` is the content of the `PROMPT` field, NOT the generic fallback.                |
 | `examplesPropagate`                        | `@AgentSkill(examples = …)` propagates to `SkillCard.examples()`.                             |
 | `temperatureOverridePropagates`            | `@AgentSkill(temperature = 0.0)` propagates to `SkillCard.temperature()`.                     |
-| `skillRegistryDoesNotYetSeeAnnotatedSkill` | **Regression watch** for the open gap below — flip the assertion when the gap is fixed.       |
+| `skillRegistryFindsAnnotatedSkill`         | `SkillRegistry.findMeta("java-calculator")` returns the meta with `source=ANNOTATION` (1.2.7+). |
+| `skillRegistryLoadsAnnotatedSkill`         | `SkillRegistry.load(...)` returns the full SkillCard with the PROMPT body and auto-detected tools. |
 
 ---
 
-## Open gaps surfaced by this example
+## Two related gaps closed in v1.2.7
 
-This example exposed **two** related gaps in how `@AgentSkill` plugs into
-the rest of the framework. Both will be closed in a subsequent framework
-release; the example tests pin the current behaviour and the workaround.
+This example originally surfaced two integration gaps in how
+`@AgentSkill` plugged into the rest of the framework. Both are closed in
+**framework v1.2.7** (which this example now pins to):
 
-### Gap A — `AgentSkillProcessor` is not auto-configured
+### Auto-configuration
 
-`AgentSkillProcessor` carries a `@Component` annotation but is NOT
-registered by any of the framework's auto-configuration `@Bean`
-factories listed in `META-INF/spring/…AutoConfiguration.imports`.
-Component scan only covers the user's own packages by default, so the
-processor never gets instantiated and `@AgentSkill` discovery silently
-does nothing — no error, no log, nothing.
+Before 1.2.7, `AgentSkillProcessor` carried only a `@Component`
+annotation and required user apps to extend their component scan into
+`ai.gargantua.autoconfigure` — easy to forget, with no error if you did.
+The example used `@Import(AgentSkillProcessor.class)` as a workaround.
 
-**Workaround (in this example):** the application class explicitly
-imports the processor:
+In 1.2.7 the processor is registered as a `@Bean` by
+`SkillRegistryAutoConfiguration` and `@AgentSkill` discovery runs out of
+the box. The example's application class is now plain
+`@SpringBootApplication` with no imports.
 
-```java
-@SpringBootApplication
-@Import(AgentSkillProcessor.class)
-public class SkillAnnotationApplication { … }
-```
+### `SkillRegistry` wiring
 
-### Gap B — `SkillRegistry` does not see annotated skills
+Before 1.2.7, even after discovery the annotated skills were invisible
+to the chat router because `SkillRegistry` consulted only
+`FilesystemSkillRegistry + ClasspathSkillsJarRegistry`.
 
-Even after the processor is instantiated, its
-`getDiscoveredSkills()` list is never consumed by the `SkillRegistry`
-composite (`FilesystemSkillRegistry` + `ClasspathSkillsJarRegistry`).
-Net effect:
-
-- `AgentSkillProcessor.getDiscoveredSkills()` returns the annotated skill
-  with correct metadata. ✓
-- `SkillRegistry.findMeta("java-calculator")` returns `Optional.empty()`. ✗
-- The chat router cannot select an annotated skill — it's invisible to
-  the routing layer.
-
-The last test (`skillRegistryDoesNotYetSeeAnnotatedSkill`) pins this
-"not yet" behaviour and will be flipped to a positive assertion once the
-framework wires `AgentSkillProcessor` into the registry.
-
-For now, if you need an annotation-defined skill to be **routable** in
-production, ship it as a SKILL.md file alongside it or wait for the next
-release.
+In 1.2.7 a new `AnnotatedSkillRegistry` adapter sits at the **end** of
+the `CompositeSkillRegistry` chain. SKILL.md files still win on name
+collisions (composite is first-match-wins, and the filesystem registry
+is first in the list) — the long-documented precedence rule is
+preserved. The two new tests
+(`skillRegistryFindsAnnotatedSkill` / `skillRegistryLoadsAnnotatedSkill`)
+pin this end-to-end.
 
 ---
 
@@ -163,7 +151,7 @@ cd agent-example-skill-annotation
 mvn -U test
 ```
 
-Nine assertions, ~10 s build, no infrastructure.
+Ten assertions, ~10 s build, no infrastructure.
 
 ### B. Chat with the agent (Docker, fully-local Ollama)
 
@@ -173,11 +161,8 @@ cp .env.example .env
 docker compose up -d
 ```
 
-> Note: because of the open gap above, the agent currently routes to
-> `default-skill` (which is a SKILL.md and IS in the registry) for every
-> request. The annotated skill is discovered at startup but not
-> selectable yet. The chat path will become useful once the framework
-> wiring is in place.
+The chat router now selects `java-calculator` for arithmetic prompts
+because v1.2.7 wires the annotated skill into the registry.
 
 ### C. Embedded mode on the host
 
