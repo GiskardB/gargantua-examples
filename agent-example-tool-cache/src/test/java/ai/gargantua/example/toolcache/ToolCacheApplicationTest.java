@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.lang.reflect.Field;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,19 +52,13 @@ class ToolCacheApplicationTest {
     @Autowired private ToolResultCache toolResultCache;
 
     @BeforeEach
-    void resetState() throws Exception {
+    void resetState() {
         counterTool.reset();
-        // ToolResultCache is a Spring singleton and would otherwise carry
-        // entries across @Test methods, polluting cache-hit assertions.
-        // The framework currently exposes no public clear() on the
-        // in-memory backend (the admin REST endpoint speaks to Redis only),
-        // so we reach into the field. Remove this once a clear() API ships.
-        Field f = ToolResultCache.class.getDeclaredField("inMemory");
-        f.setAccessible(true);
-        Map<?, ?> inMemory = (Map<?, ?>) f.get(toolResultCache);
-        if (inMemory != null) {
-            inMemory.clear();
-        }
+        // ToolResultCache is a Spring singleton; we clear between tests so
+        // cache-hit assertions don't depend on test execution order.
+        // The public clear() API ships in framework v1.2.6+; earlier versions
+        // required reflection to do the same thing.
+        toolResultCache.clear();
     }
 
     // ── 1. Basic hit ────────────────────────────────────────────────

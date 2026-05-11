@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -145,21 +146,36 @@ class ToolApprovalApplicationTest {
                 .andExpect(status().isGone());
     }
 
-    // ── 4. Tool body still runs when called directly (NOT via streaming) ──
+    // ── 4. Registry-level gate (1.2.6+): every chat path is now gated ──
 
     @Test
-    @DisplayName("Direct toolRegistry.executeTool('transfer', …) DOES run the tool body — gating lives in the streaming controller, not the registry")
-    void registryDoesNotGateApproval() {
+    @DisplayName("Direct toolRegistry.executeTool('transfer', …) returns awaiting_approval JSON and does NOT mutate state (1.2.6+)")
+    void registryGatesApprovalUniformly() throws Exception {
         tool.seedBalance("alice", 1000L);
         tool.seedBalance("bob",   0L);
 
         String result = toolRegistry.executeTool("transfer",
                 "{\"from\":\"alice\",\"to\":\"bob\",\"amount\":\"100\"}");
 
-        // Result is JSON — the registry's contract is "run, serialise, return".
-        assertFalse(result.startsWith("{\"error\""), "expected success, got: " + result);
-        assertEquals(900L, tool.balanceOf("alice"));
-        assertEquals(100L, tool.balanceOf("bob"));
+        assertTrue(result.startsWith("{\"status\":\"awaiting_approval\""),
+                "expected awaiting_approval JSON, got: " + result);
+        // Registry persisted a pending request — fish the id out of the JSON
+        // and verify the ApprovalStore has it with the message + dangerous flag.
+        String requestId = result.replaceAll(
+                ".*\"requestId\":\"([0-9a-fA-F-]+)\".*", "$1");
+        Optional<ApprovalRequest> pending = approvalStore.getPending(requestId);
+        assertTrue(pending.isPresent(), "registry should have persisted the pending request");
+        assertEquals("transfer", pending.get().toolName());
+        assertTrue(pending.get().dangerous());
+
+        // showParameters = {"from", "to", "amount"} — the persisted parameters
+        // should carry exactly those keys (none missing, no extras).
+        assertEquals(Set.of("from", "to", "amount"),
+                pending.get().parameters().keySet());
+
+        // The tool body must NOT have run.
+        assertEquals(1000L, tool.balanceOf("alice"));
+        assertEquals(0L,    tool.balanceOf("bob"));
     }
 
     // ── helpers ────────────────────────────────────────────────────
