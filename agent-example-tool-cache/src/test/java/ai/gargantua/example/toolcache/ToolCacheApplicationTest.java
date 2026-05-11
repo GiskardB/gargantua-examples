@@ -1,6 +1,7 @@
 package ai.gargantua.example.toolcache;
 
 import ai.gargantua.autoconfigure.ToolRegistry;
+import ai.gargantua.autoconfigure.ToolResultCache;
 import ai.gargantua.core.security.SecurityContext;
 import ai.gargantua.core.tool.ToolExecutionContext;
 import ai.gargantua.example.toolcache.tools.CounterTool;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -45,13 +48,25 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("embedded")
 class ToolCacheApplicationTest {
 
-    @Autowired private ToolRegistry  toolRegistry;
-    @Autowired private CounterTool   counterTool;
-    @Autowired private MeterRegistry meterRegistry;
+    @Autowired private ToolRegistry    toolRegistry;
+    @Autowired private CounterTool     counterTool;
+    @Autowired private MeterRegistry   meterRegistry;
+    @Autowired private ToolResultCache toolResultCache;
 
     @BeforeEach
-    void resetCounters() {
+    void resetState() throws Exception {
         counterTool.reset();
+        // ToolResultCache is a Spring singleton and would otherwise carry
+        // entries across @Test methods, polluting cache-hit assertions.
+        // The framework currently exposes no public clear() on the
+        // in-memory backend (the admin REST endpoint speaks to Redis only),
+        // so we reach into the field. Remove this once a clear() API ships.
+        Field f = ToolResultCache.class.getDeclaredField("inMemory");
+        f.setAccessible(true);
+        Map<?, ?> inMemory = (Map<?, ?>) f.get(toolResultCache);
+        if (inMemory != null) {
+            inMemory.clear();
+        }
     }
 
     // ── 1. Basic hit ────────────────────────────────────────────────
