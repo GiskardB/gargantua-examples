@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.4</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>ai.gargantua.example</groupId>
+  <artifactId>agent-example-tool-basics</artifactId>
+  <version>1.0.0</version>
+  <name>Gargantua @AgentTool Basics Example</name>
+  <description>
+    The minimum required to use @AgentTool. A pure-in-process Calculator tool
+    with three methods — add, multiply, power(name="pow") — exposed to a
+    single skill. No network, no API keys, fully verifiable with `mvn test`.
+  </description>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <properties>
+    <java.version>21</java.version>
+    <!-- Gargantua framework coords on JitPack. To consume a tagged release
+         set this to e.g. v1.2.2; for tip-of-branch use <branch>-SNAPSHOT. -->
+    <gargantua.version>v1.2.3</gargantua.version>
+  </properties>
+
+  <!-- JitPack — resolves com.github.giskardb.gargantua:* artifacts -->
+  <repositories>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <dependencies>
+    <!-- Gargantua Agent Engine — pulls @AgentTool, ToolRegistry, the
+         orchestrator and all Spring auto-configuration. -->
+    <dependency>
+      <groupId>com.github.giskardb.gargantua</groupId>
+      <artifactId>agent-engine</artifactId>
+      <version>${gargantua.version}</version>
+    </dependency>
+
+    <!-- Spring Boot starters (explicit for clarity; most are transitive) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- SKILL.md linter — validates skill frontmatter at build time -->
+      <plugin>
+        <groupId>com.github.giskardb.gargantua</groupId>
+        <artifactId>agent-skill-linter-maven-plugin</artifactId>
+        <version>${gargantua.version}</version>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals><goal>lint</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Preserve parameter names so ToolRegistry can bind JSON args by name -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <parameters>true</parameters>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

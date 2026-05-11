@@ -2,6 +2,18 @@
 
 Reference agents built on the [Gargantua framework](https://github.com/GiskardB/gargantua).
 
+### Per-feature examples
+
+Single-feature demos — one annotation or capability at a time, each one verifiable with `mvn test`:
+
+| Example | Feature it pins |
+|---------|-----------------|
+| [`agent-example-tool-basics`](agent-example-tool-basics/) | `@AgentTool` itself — name override, description, `parallelizable`, registration scan, JSON arg/return contract. Zero infra. |
+
+### Scenario examples
+
+End-to-end agents combining many features:
+
 | Example | What it shows |
 |---------|---------------|
 | [`agent-example-weather`](agent-example-weather/) | Smallest useful agent: 1 skill, 1 tool, real HTTP integration (Open-Meteo). Fully-local Ollama, no API keys. |
