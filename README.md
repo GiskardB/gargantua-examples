@@ -15,6 +15,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | [`agent-example-tool-rbac`](agent-example-tool-rbac/) | `@RequiresRole` — registry-level RBAC gate, any-of semantics, `super-admin` wildcard, fail-closed without `SecurityContext`. Zero infra. |
 | [`agent-example-skill-annotation`](agent-example-skill-annotation/) | `@AgentSkill` — skill defined inline in Java, auto-detected `@AgentTool` methods, `PROMPT` field, `examples`/`temperature` overrides. v1.2.7+ wires the annotated skills into the `SkillRegistry`. |
 | [`agent-example-skill-filesystem`](agent-example-skill-filesystem/) | SKILL.md filesystem authoring — YAML frontmatter (name/version/allowed-tools/metadata), markdown body → system prompt, `references/` folder auto-append, `metadata.active: false`. Zero infra. |
+| [`agent-example-agents-flow`](agent-example-agents-flow/) | `@AgentsFlow` — multi-step skill pipelines, `SEQUENTIAL` / `LOOP` / `PARALLEL` step types, per-step instructions, `FlowRegistry` discovery. Zero infra. |
 
 ### Scenario examples
 
