@@ -9,6 +9,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | Example | Feature it pins |
 |---------|-----------------|
 | [`agent-example-tool-basics`](agent-example-tool-basics/) | `@AgentTool` itself — name override, description, `parallelizable`, registration scan, JSON arg/return contract. Zero infra. |
+| [`agent-example-tool-retry`](agent-example-tool-retry/) | `@ToolRetry` — exponential backoff via Resilience4j, `retryOn`/`abortOn` filters, exhaustion → JSON error, Micrometer metrics. Zero infra. |
 
 ### Scenario examples
 
