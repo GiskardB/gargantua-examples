@@ -13,6 +13,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | [`agent-example-tool-cache`](agent-example-tool-cache/) | `@CacheableToolResult` — read-through cache, `keyParams` selectivity, TTL expiry, GLOBAL/USER/SESSION scopes, hit/miss counters. In-memory backend in embedded mode (v1.2.5+). |
 | [`agent-example-tool-approval`](agent-example-tool-approval/) | `@RequiresApproval` — HITL metadata, `ApprovalStore` lifecycle (save/get/resolve/expiry), REST resolution at `/api/agent/approval/{id}`. Zero infra. |
 | [`agent-example-tool-rbac`](agent-example-tool-rbac/) | `@RequiresRole` — registry-level RBAC gate, any-of semantics, `super-admin` wildcard, fail-closed without `SecurityContext`. Zero infra. |
+| [`agent-example-skill-annotation`](agent-example-skill-annotation/) | `@AgentSkill` — skill defined inline in Java, auto-detected `@AgentTool` methods, `PROMPT` field, `examples`/`temperature` overrides. Surfaces an open framework gap (annotation→registry wiring). |
 
 ### Scenario examples
 

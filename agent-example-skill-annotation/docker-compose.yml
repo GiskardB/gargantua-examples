@@ -1,0 +1,93 @@
+# ═══════════════════════════════════════════════════════════════════
+# @AgentSkill Example — fully self-contained chat stack
+#
+# `mvn test` covers the @AgentSkill contract end-to-end with no
+# infrastructure. docker compose is here for the live chat demo
+# (mongo + redis + ollama + the agent).
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/agent-example-skill-annotation
+      REDIS_URL: redis://redis:6379
+
+      LLM_PRIMARY_PROVIDER: ollama
+      LLM_PRIMARY_MODEL: ${LLM_PRIMARY_MODEL:-llama3.2:3b}
+      LLM_PRIMARY_API_KEY: ""
+      LLM_PRIMARY_ENDPOINT: http://ollama:11434
+      LLM_PRIMARY_TEMPERATURE: ${LLM_PRIMARY_TEMPERATURE:-0.0}
+      LLM_PRIMARY_MAX_TOKENS: ${LLM_PRIMARY_MAX_TOKENS:-500}
+
+      LLM_FALLBACK_PROVIDER: ollama
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-qwen2.5:3b}
+      LLM_FALLBACK_API_KEY: ""
+      LLM_FALLBACK_ENDPOINT: http://ollama:11434
+
+      LLM_ROUTING_PROVIDER: ollama
+      LLM_ROUTING_MODEL: ${LLM_ROUTING_MODEL:-phi4-mini}
+      LLM_ROUTING_ENDPOINT: http://ollama:11434
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      ollama-init: { condition: service_completed_successfully }
+
+  mongo:
+    image: mongo:8.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until ollama list 2>/dev/null; do sleep 2; done && \
+        ollama pull ${LLM_PRIMARY_MODEL:-llama3.2:3b} && \
+        ollama pull ${LLM_FALLBACK_MODEL:-qwen2.5:3b} && \
+        ollama pull ${LLM_ROUTING_MODEL:-phi4-mini} && \
+        echo 'All models ready.'
+    depends_on:
+      ollama: { condition: service_healthy }
+    restart: "no"
+
+volumes:
+  mongo-data:
+  ollama-data:
