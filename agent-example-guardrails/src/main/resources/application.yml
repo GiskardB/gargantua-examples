@@ -1,0 +1,111 @@
+##############################################################################
+# Guardrails example — agent configuration
+#
+# Every guardrail this example pins in tests is enabled here. The
+# defaults are deliberately permissive (max-length 200 to make the test
+# trigger easily; topic-scope blocklist seeded with two synthetic terms).
+##############################################################################
+
+spring:
+  application:
+    name: agent-example-guardrails
+  threads:
+    virtual:
+      enabled: true
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-guardrails}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-guardrails}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+agent:
+  llm:
+    primary:
+      provider: ${LLM_PRIMARY_PROVIDER:openai}
+      model: ${LLM_PRIMARY_MODEL:gpt-4o}
+      api-key: ${LLM_PRIMARY_API_KEY:}
+      endpoint: ${LLM_PRIMARY_ENDPOINT:}
+      temperature: ${LLM_PRIMARY_TEMPERATURE:0.2}
+      max-tokens: ${LLM_PRIMARY_MAX_TOKENS:500}
+    fallback:
+      provider: ${LLM_FALLBACK_PROVIDER:anthropic}
+      model: ${LLM_FALLBACK_MODEL:claude-sonnet-4-20250514}
+      api-key: ${LLM_FALLBACK_API_KEY:}
+      endpoint: ${LLM_FALLBACK_ENDPOINT:}
+    routing-model:
+      provider: ${LLM_ROUTING_PROVIDER:ollama}
+      model: ${LLM_ROUTING_MODEL:phi4-mini}
+      api-key: ${LLM_ROUTING_API_KEY:}
+      endpoint: ${LLM_ROUTING_ENDPOINT:http://localhost:11434}
+      temperature: 0.0
+      max-tokens: 50
+
+  skill:
+    path: classpath:skills/
+    hot-reload: false
+    cache-ttl-minutes: 60
+
+  routing:
+    strategy: hybrid
+    fallback-skill: default-skill
+    semantic:
+      threshold: 0.30
+
+  memory:
+    working:
+      max-messages: 20
+      ttl-minutes: 30
+    composer:
+      max-context-tokens: 3000
+
+  guardrail:
+    input:
+      max-length-enabled: true
+      max-length-chars: 200
+      prompt-injection-enabled: true
+      pii-masking-enabled: true
+      topic-scope-enabled: true
+      blocked-topics:
+        - cryptocurrency
+        - gambling
+    output:
+      pii-masking-enabled: true
+      schema-validator:
+        enabled: true
+
+  cost-tracking:
+    enabled: true
+    retention-days: 365
+
+  audit:
+    enabled: true
+    retention-days: 365
+
+  chat-ui:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+    ai.gargantua.example.guardrails: DEBUG
+    ai.gargantua.autoconfigure.guardrails: DEBUG

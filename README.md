@@ -20,6 +20,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | [`agent-example-rag`](agent-example-rag/) | RAG — SKILL.md `knowledge-base` → `RagConfig`, `VectorStorePort.search` (in-memory backend), `RagEnricher` injects `RELEVANT_DOCUMENTS` into the prompt, respects `rag-max-results`/`rag-min-score`. Zero infra. |
 | [`agent-example-memory-layers`](agent-example-memory-layers/) | 3-layer memory — `WorkingMemoryPort` / `EpisodicMemoryPort` / `KnowledgeMemoryPort` CRUD, `MemoryComposer` parallel fetch + token-budget truncation (knowledge → episodic), SKILL.md `memory-layers` opt-out. Zero infra. |
 | [`agent-example-output-schema`](agent-example-output-schema/) | JSON-Schema output guardrail — SKILL.md inline `metadata.output-schema` → `SchemaValidatorGuardrail`, PASS/BLOCK with validation messages, markdown-fence extraction, corrective-prompt auto-retry documented. Zero infra. |
+| [`agent-example-guardrails`](agent-example-guardrails/) | Input + output guardrail pipeline — `MaxLength`, `PromptInjection`, `TopicScope`, `PiiInput` (masking + `pii_map`), `PiiOutput` (restore from input map / regex fallback). 12 assertions, zero infra. |
 
 ### Scenario examples
 
