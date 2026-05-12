@@ -1,0 +1,115 @@
+##############################################################################
+# Schema-Validated Output example — agent configuration
+##############################################################################
+
+spring:
+  application:
+    name: agent-example-output-schema
+  threads:
+    virtual:
+      enabled: true
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-output-schema}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-output-schema}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+agent:
+  llm:
+    primary:
+      provider: ${LLM_PRIMARY_PROVIDER:openai}
+      model: ${LLM_PRIMARY_MODEL:gpt-4o}
+      api-key: ${LLM_PRIMARY_API_KEY:}
+      endpoint: ${LLM_PRIMARY_ENDPOINT:}
+      temperature: ${LLM_PRIMARY_TEMPERATURE:0.0}
+      max-tokens: ${LLM_PRIMARY_MAX_TOKENS:500}
+    fallback:
+      provider: ${LLM_FALLBACK_PROVIDER:anthropic}
+      model: ${LLM_FALLBACK_MODEL:claude-sonnet-4-20250514}
+      api-key: ${LLM_FALLBACK_API_KEY:}
+      endpoint: ${LLM_FALLBACK_ENDPOINT:}
+    routing-model:
+      provider: ${LLM_ROUTING_PROVIDER:ollama}
+      model: ${LLM_ROUTING_MODEL:phi4-mini}
+      api-key: ${LLM_ROUTING_API_KEY:}
+      endpoint: ${LLM_ROUTING_ENDPOINT:http://localhost:11434}
+      temperature: 0.0
+      max-tokens: 50
+
+  skill:
+    path: classpath:skills/
+    hot-reload: false
+    cache-ttl-minutes: 60
+
+  routing:
+    strategy: hybrid
+    fallback-skill: default-skill
+    semantic:
+      threshold: 0.30
+
+  memory:
+    working:
+      max-messages: 20
+      ttl-minutes: 30
+    episodic:
+      max-summaries: 5
+      ttl-days: 365
+    knowledge:
+      max-segments: 10
+    composer:
+      max-context-tokens: 3000
+
+  guardrail:
+    input:
+      max-chars: 2000
+      injection-guard:
+        enabled: true
+    output:
+      # Enable the SchemaValidatorGuardrail. It will only fire when the
+      # active skill carries an outputSchema (hasSchema = true); other
+      # skills pass through untouched.
+      schema-validator:
+        enabled: true
+
+  # When schema validation fails, re-prompt the LLM with a corrective
+  # user message up to this many times before returning the BLOCK to
+  # the caller. Default is 2; set to 0 to disable the auto-retry.
+  output:
+    validation-retries: 2
+
+  cost-tracking:
+    enabled: true
+    retention-days: 365
+
+  audit:
+    enabled: true
+    retention-days: 365
+
+  chat-ui:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+    ai.gargantua.example.outputschema: DEBUG
+    ai.gargantua.autoconfigure.guardrails.SchemaValidatorGuardrail: DEBUG
