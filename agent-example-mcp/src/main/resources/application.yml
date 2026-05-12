@@ -1,0 +1,97 @@
+##############################################################################
+# MCP Server example — agent configuration
+#
+# `agent.mcp.enabled: true` is the master switch. With it on, the
+# auto-config registers ChatMcpTool (the gateway tool wrapping the
+# OrchestratorEngine) and CapabilitiesMcpResource (live capability
+# discovery from SkillRegistry + ToolRegistry).
+##############################################################################
+
+spring:
+  application:
+    name: agent-example-mcp
+  threads:
+    virtual:
+      enabled: true
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-mcp}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-mcp}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+agent:
+  llm:
+    primary:
+      provider: ${LLM_PRIMARY_PROVIDER:openai}
+      model: ${LLM_PRIMARY_MODEL:gpt-4o}
+      api-key: ${LLM_PRIMARY_API_KEY:}
+      endpoint: ${LLM_PRIMARY_ENDPOINT:}
+    fallback:
+      provider: ${LLM_FALLBACK_PROVIDER:anthropic}
+      model: ${LLM_FALLBACK_MODEL:claude-sonnet-4-20250514}
+      api-key: ${LLM_FALLBACK_API_KEY:}
+      endpoint: ${LLM_FALLBACK_ENDPOINT:}
+    routing-model:
+      provider: ${LLM_ROUTING_PROVIDER:ollama}
+      model: ${LLM_ROUTING_MODEL:phi4-mini}
+      endpoint: ${LLM_ROUTING_ENDPOINT:http://localhost:11434}
+      temperature: 0.0
+      max-tokens: 50
+
+  skill:
+    path: classpath:skills/
+    hot-reload: false
+
+  routing:
+    strategy: hybrid
+    fallback-skill: default-skill
+
+  memory:
+    composer:
+      max-context-tokens: 3000
+
+  mcp:
+    enabled: true
+    mode: standalone
+    server:
+      name: gargantua-demo-mcp
+      version: 1.0.0
+      description: Demo Gargantua agent exposed over MCP.
+    transport:
+      type: sse
+      path: /mcp
+    gateway:
+      tool-name: ask-the-agent
+      tool-description: Send a natural-language message to the Gargantua agent.
+    security:
+      auth-required: false
+      token-header: Authorization
+
+  chat-ui:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+    ai.gargantua.example.mcp: DEBUG
+    ai.gargantua.mcp: DEBUG

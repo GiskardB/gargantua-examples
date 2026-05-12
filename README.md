@@ -23,6 +23,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | [`agent-example-guardrails`](agent-example-guardrails/) | Input + output guardrail pipeline — `MaxLength`, `PromptInjection`, `TopicScope`, `PiiInput` (masking + `pii_map`), `PiiOutput` (restore from input map / regex fallback). 12 assertions, zero infra. |
 | [`agent-example-llm-routing`](agent-example-llm-routing/) | LLM routing rules / model-pool — priority ordering, enabled flag, every condition operator (EQ/IN/NOT_IN/GT/LT/GTE/LTE/REGEX/CONTAINS), AND/OR, time-window (cross-midnight), day-of-week, random-sampling, attribute-match, legacy attribute-equality fallback, no-match → primary-alias. 17 assertions, zero infra. |
 | [`agent-example-cost-and-audit`](agent-example-cost-and-audit/) | Cost tracking + audit trail — `CostTracker` pricing lookup (nested / colon / model-only forms), USD arithmetic, disabled short-circuit. `AuditStore` CRUD via in-memory adapter, `AuditService.recordRequest` event-mapping (incl. `GuardrailEvent`), tenant/session/user/time-range queries, audit-disabled short-circuit. 16 assertions, zero infra. |
+| [`agent-example-mcp`](agent-example-mcp/) | MCP server — `agent.mcp.enabled=true` activates the auto-config; pins `ChatMcpTool` gateway (request forwarding + JSON error sentinels) and `CapabilitiesMcpResource` (server identity + gateway tool entry + live skill/tool listings). 9 assertions with a mocked `OrchestratorEngine`, zero infra. |
 
 ### Scenario examples
 
