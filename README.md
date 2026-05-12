@@ -21,6 +21,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | [`agent-example-memory-layers`](agent-example-memory-layers/) | 3-layer memory — `WorkingMemoryPort` / `EpisodicMemoryPort` / `KnowledgeMemoryPort` CRUD, `MemoryComposer` parallel fetch + token-budget truncation (knowledge → episodic), SKILL.md `memory-layers` opt-out. Zero infra. |
 | [`agent-example-output-schema`](agent-example-output-schema/) | JSON-Schema output guardrail — SKILL.md inline `metadata.output-schema` → `SchemaValidatorGuardrail`, PASS/BLOCK with validation messages, markdown-fence extraction, corrective-prompt auto-retry documented. Zero infra. |
 | [`agent-example-guardrails`](agent-example-guardrails/) | Input + output guardrail pipeline — `MaxLength`, `PromptInjection`, `TopicScope`, `PiiInput` (masking + `pii_map`), `PiiOutput` (restore from input map / regex fallback). 12 assertions, zero infra. |
+| [`agent-example-llm-routing`](agent-example-llm-routing/) | LLM routing rules / model-pool — priority ordering, enabled flag, every condition operator (EQ/IN/NOT_IN/GT/LT/GTE/LTE/REGEX/CONTAINS), AND/OR, time-window (cross-midnight), day-of-week, random-sampling, attribute-match, legacy attribute-equality fallback, no-match → primary-alias. 17 assertions, zero infra. |
 
 ### Scenario examples
 

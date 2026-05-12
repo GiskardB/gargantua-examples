@@ -1,0 +1,258 @@
+##############################################################################
+# LLM Routing Rules example — agent configuration
+#
+# This file declares a representative set of routing rules that pins every
+# observable branch of the RoutingRuleEvaluator grammar:
+#   - priority ordering (lowest first)
+#   - enabled flag (disabled rules are listed in the trace but skipped)
+#   - string operators: EQ, IN, NOT_IN
+#   - numeric operators: GTE (and legacy min-tokens GTE)
+#   - AND / OR combinators
+#   - special structures: time-window (cross-midnight), day-of-week,
+#     random-sampling, input-contains, attribute-match (REGEX)
+#   - legacy attribute-equality fallback for unknown keys
+#
+# Tests construct LlmRoutingContext explicitly to land on each rule by name.
+##############################################################################
+
+spring:
+  application:
+    name: agent-example-llm-routing
+  threads:
+    virtual:
+      enabled: true
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-llm-routing}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-llm-routing}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+agent:
+  llm:
+    primary-alias: default
+    fallback-alias: ""
+
+    primary:
+      provider: ${LLM_PRIMARY_PROVIDER:openai}
+      model: ${LLM_PRIMARY_MODEL:gpt-4o}
+      api-key: ${LLM_PRIMARY_API_KEY:}
+      endpoint: ${LLM_PRIMARY_ENDPOINT:}
+    fallback:
+      provider: ${LLM_FALLBACK_PROVIDER:anthropic}
+      model: ${LLM_FALLBACK_MODEL:claude-sonnet-4-20250514}
+      api-key: ${LLM_FALLBACK_API_KEY:}
+      endpoint: ${LLM_FALLBACK_ENDPOINT:}
+    routing-model:
+      provider: ${LLM_ROUTING_PROVIDER:ollama}
+      model: ${LLM_ROUTING_MODEL:phi4-mini}
+      api-key: ${LLM_ROUTING_API_KEY:}
+      endpoint: ${LLM_ROUTING_ENDPOINT:http://localhost:11434}
+      temperature: 0.0
+      max-tokens: 50
+
+    routing-rules:
+      # Priority 5 — DISABLED rule. The condition would otherwise match
+      # `skill: coding-skill`. Proves disabled rules are listed in the
+      # trace but never selected.
+      - name: disabled-coding-rule
+        priority: 5
+        enabled: false
+        target-model: model-never
+        description: Disabled rule — must be skipped.
+        condition:
+          skill: coding-skill
+
+      # Priority 10 — skill EQ (canonical short form: scalar value).
+      - name: coding-skill-eq
+        priority: 10
+        enabled: true
+        target-model: model-fast
+        description: Route the coding skill to a fast model.
+        condition:
+          skill:
+            operator: EQ
+            value: coding-skill
+
+      # Priority 15 — domain IN list (multi-value membership).
+      - name: medical-or-legal-domain-in
+        priority: 15
+        enabled: true
+        target-model: model-careful
+        description: Medical / legal traffic goes to a careful model.
+        condition:
+          domain:
+            operator: IN
+            values: [medical, legal]
+
+      # Priority 20 — domain NOT_IN list (complement membership).
+      - name: niche-domain-not-in
+        priority: 20
+        enabled: true
+        target-model: model-specialty
+        description: Anything outside the common domains gets specialty routing.
+        condition:
+          domain:
+            operator: NOT_IN
+            values: [general, billing, medical, legal, metrics]
+
+      # Priority 25 — input-length GTE 500.
+      - name: long-input-gte
+        priority: 25
+        enabled: true
+        target-model: model-cheap
+        description: Long inputs go to a cheaper model.
+        condition:
+          input-length:
+            operator: GTE
+            value: 500
+
+      # Priority 30 — legacy `min-tokens` shorthand (GTE semantics).
+      - name: min-tokens-legacy
+        priority: 30
+        enabled: true
+        target-model: model-cheap-legacy
+        description: Legacy shorthand min-tokens — GTE on estimated-tokens.
+        condition:
+          min-tokens: 200
+
+      # Priority 35 — AND combinator: premium tier AND input mentions TODO/FIXME.
+      - name: premium-and-todo
+        priority: 35
+        enabled: true
+        target-model: model-premium-code
+        description: Premium users asking about TODO/FIXME get the premium code model.
+        condition:
+          AND:
+            - user-tier:
+                operator: EQ
+                value: premium
+            - input-contains:
+                patterns: [TODO, FIXME]
+
+      # Priority 40 — time-window crossing midnight (22:00 → 06:00).
+      - name: night-hours
+        priority: 40
+        enabled: true
+        target-model: model-night
+        description: Off-hours traffic routes to a model with cheaper night rates.
+        condition:
+          time-window:
+            from: "22:00"
+            to: "06:00"
+
+      # Priority 45 — day-of-week (Saturday or Sunday).
+      - name: weekend-day
+        priority: 45
+        enabled: true
+        target-model: model-weekend
+        description: Weekend traffic gets a different model.
+        condition:
+          day-of-week:
+            days: [SATURDAY, SUNDAY]
+
+      # Priority 50 — AND combinator with random-sampling at 100%
+      # (always matches when AND-ed with the gating skill).
+      - name: canary-sampled-100
+        priority: 50
+        enabled: true
+        target-model: model-canary
+        description: Canary skill at 100% sampling — always picked for that skill.
+        condition:
+          AND:
+            - skill:
+                operator: EQ
+                value: canary-skill
+            - random-sampling:
+                percentage: 100
+
+      # Priority 55 — attribute-match with REGEX operator on x-priority header.
+      - name: priority-header-regex
+        priority: 55
+        enabled: true
+        target-model: model-priority
+        description: x-priority = high|urgent routes to a priority model.
+        condition:
+          attribute-match:
+            key: x-priority
+            operator: REGEX
+            value: "^(high|urgent)$"
+
+      # Priority 60 — OR combinator across two disjoint conditions.
+      - name: or-skill-or-domain
+        priority: 60
+        enabled: true
+        target-model: model-or-target
+        description: Either the metrics skill OR the metrics domain triggers OR-target.
+        condition:
+          OR:
+            - skill:
+                operator: EQ
+                value: metrics-skill
+            - domain:
+                operator: EQ
+                value: metrics
+
+      # Priority 65 — legacy attribute equality (unknown condition key falls
+      # back to ctx.attributes() exact-match lookup).
+      - name: legacy-tenant-eq
+        priority: 65
+        enabled: true
+        target-model: model-tenant-gold
+        description: Legacy shorthand — unknown key falls back to attribute equality.
+        condition:
+          tenant-id: gold-corp
+
+  skill:
+    path: classpath:skills/
+    hot-reload: false
+    cache-ttl-minutes: 60
+
+  routing:
+    strategy: hybrid
+    fallback-skill: default-skill
+    semantic:
+      threshold: 0.30
+
+  memory:
+    working:
+      max-messages: 20
+      ttl-minutes: 30
+    composer:
+      max-context-tokens: 3000
+
+  cost-tracking:
+    enabled: true
+    retention-days: 365
+
+  audit:
+    enabled: true
+    retention-days: 365
+
+  chat-ui:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+    ai.gargantua.example.llmrouting: DEBUG
+    ai.gargantua.autoconfigure.LlmRouter: DEBUG
