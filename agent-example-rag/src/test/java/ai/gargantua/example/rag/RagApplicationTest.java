@@ -36,20 +36,7 @@ class RagApplicationTest {
 
     @Autowired private SkillRegistry   skillRegistry;
     @Autowired private VectorStorePort vectorStore;
-
-    /*
-     * Open framework gap (as of v1.2.7): RagAutoConfiguration declares
-     * @ConditionalOnBean({VectorStorePort.class, SkillRegistry.class}) but
-     * lacks @AutoConfigureAfter(EmbeddedProfileAutoConfiguration.class),
-     * so the conditional is evaluated before the embedded vector-store bean
-     * is registered and the framework never instantiates the RagEnricher.
-     * The example tracks this in its README + the per-feature progress memory;
-     * for now we instantiate the enricher directly so the contract can be
-     * pinned against the same in-memory backend the framework would use.
-     */
-    private RagEnricher ragEnricher() {
-        return new RagEnricher(vectorStore, skillRegistry);
-    }
+    @Autowired private RagEnricher     ragEnricher;
 
     private EnricherContext ctx(String skillName, String userMessage) {
         return new EnricherContext(
@@ -128,7 +115,7 @@ class RagApplicationTest {
     @Test
     @DisplayName("enricher injects a RELEVANT_DOCUMENTS section for skills with a RagConfig")
     void enricherProducesSectionForRagSkill() {
-        String section = ragEnricher().enrich(
+        String section = ragEnricher.enrich(
                 ctx("support-skill", "How do I get a refund on my last payment?"));
 
         assertNotNull(section, "enricher must return a non-null section for ragConfig'd skills");
@@ -143,7 +130,7 @@ class RagApplicationTest {
     @Test
     @DisplayName("enricher returns null for skills without a RagConfig (zero prompt overhead)")
     void enricherReturnsNullForNonRagSkill() {
-        String section = ragEnricher().enrich(
+        String section = ragEnricher.enrich(
                 ctx("default-skill", "Hello, can you help me?"));
         assertNull(section, "no ragConfig → no enrichment, the prompt stays the same");
     }
@@ -152,7 +139,7 @@ class RagApplicationTest {
     @DisplayName("enricher returns null when no chunk clears the skill's minScore (irrelevant query)")
     void enricherReturnsNullWhenNothingMatches() {
         // Query has zero token overlap with any seeded chunk — Jaccard score = 0.
-        String section = ragEnricher().enrich(
+        String section = ragEnricher.enrich(
                 ctx("support-skill", "asdf qwer zxcv 12345"));
         assertNull(section,
                 "when the search returns no chunks, the enricher must return null, not an empty section");
@@ -164,7 +151,7 @@ class RagApplicationTest {
         // The query overlaps with multiple seeded chunks (refund/SLA/password/maintenance).
         // support-skill declares rag-max-results=3, so at most 3 numbered entries should
         // appear. The seeder only writes 4 chunks total — perfect to verify the cap.
-        String section = ragEnricher().enrich(
+        String section = ragEnricher.enrich(
                 ctx("support-skill", "policy refund SLA password reset maintenance"));
         assertNotNull(section);
 

@@ -133,6 +133,30 @@ SPRING_PROFILES_ACTIVE=embedded mvn spring-boot:run
 
 ---
 
+## Open framework gap (partial fix in v1.2.8)
+
+This example originally exposed a framework ordering bug:
+`RagAutoConfiguration` declared `@ConditionalOnBean(VectorStorePort.class)`
+but did not declare `@AutoConfigureAfter(EmbeddedProfileAutoConfiguration.class)`,
+so in embedded mode the conditional fired before the in-memory vector
+store was registered and the `RagEnricher` bean was never created.
+
+v1.2.8 added `@AutoConfiguration(after = EmbeddedProfileAutoConfiguration.class)`
+to `RagAutoConfiguration`, but in practice the wiring is **still not enough**
+in embedded mode — likely because `EmbeddedProfileAutoConfiguration` carries
+`@Profile("embedded")`, which appears to defeat the auto-configuration
+ordering hint. Symptom: the `RagEnricher` bean is still missing from
+the context.
+
+**Workaround used in this example** ([`RagApplication`](src/main/java/ai/gargantua/example/rag/RagApplication.java)):
+the application class declares the `RagEnricher` bean explicitly via a
+`@Bean` factory. The test layer can then `@Autowired` it as documented.
+Tracked in the per-feature progress memory; the proper fix probably
+requires switching from `@ConditionalOnBean` to an `ObjectProvider`
+lookup, slated for the next framework release.
+
+---
+
 ## What this example deliberately does NOT show
 
 | Concern                                  | Where to look                                                                |
