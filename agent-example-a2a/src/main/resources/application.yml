@@ -1,0 +1,86 @@
+##############################################################################
+# A2A Protocol example — agent configuration
+#
+# `agent.api.*` populates the A2A AgentCard (name + version + description).
+# CapabilitiesAutoConfiguration registers AgentCardService + HttpA2AClient
+# unconditionally; WebAutoConfiguration registers CapabilitiesController
+# (REST surface for /.well-known/agent.json + /a2a JSON-RPC) when
+# AgentCardService is in the context.
+##############################################################################
+
+spring:
+  application:
+    name: agent-example-a2a
+  threads:
+    virtual:
+      enabled: true
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-a2a}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-a2a}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+agent:
+  api:
+    display-name: Gargantua Demo A2A Agent
+    version: 1.4.2
+    description: Demo agent exposing the A2A protocol surface.
+
+  llm:
+    primary:
+      provider: ${LLM_PRIMARY_PROVIDER:openai}
+      model: ${LLM_PRIMARY_MODEL:gpt-4o}
+      api-key: ${LLM_PRIMARY_API_KEY:}
+      endpoint: ${LLM_PRIMARY_ENDPOINT:}
+    fallback:
+      provider: ${LLM_FALLBACK_PROVIDER:anthropic}
+      model: ${LLM_FALLBACK_MODEL:claude-sonnet-4-20250514}
+      api-key: ${LLM_FALLBACK_API_KEY:}
+      endpoint: ${LLM_FALLBACK_ENDPOINT:}
+    routing-model:
+      provider: ${LLM_ROUTING_PROVIDER:ollama}
+      model: ${LLM_ROUTING_MODEL:phi4-mini}
+      endpoint: ${LLM_ROUTING_ENDPOINT:http://localhost:11434}
+      temperature: 0.0
+      max-tokens: 50
+
+  skill:
+    path: classpath:skills/
+    hot-reload: false
+
+  routing:
+    strategy: hybrid
+    fallback-skill: billing-skill
+
+  memory:
+    composer:
+      max-context-tokens: 3000
+
+  chat-ui:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+    ai.gargantua.example.a2a: DEBUG
+    ai.gargantua.adapters.web.CapabilitiesController: DEBUG
