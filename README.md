@@ -17,6 +17,7 @@ Single-feature demos — one annotation or capability at a time, each one verifi
 | [`agent-example-skill-filesystem`](agent-example-skill-filesystem/) | SKILL.md filesystem authoring — YAML frontmatter (name/version/allowed-tools/metadata), markdown body → system prompt, `references/` folder auto-append, `metadata.active: false`. Zero infra. |
 | [`agent-example-agents-flow`](agent-example-agents-flow/) | `@AgentsFlow` — multi-step skill pipelines, `SEQUENTIAL` / `LOOP` / `PARALLEL` step types, per-step instructions, `FlowRegistry` discovery. Zero infra. |
 | [`agent-example-routing-strategy`](agent-example-routing-strategy/) | Skill routing — `semantic` (ONNX embeddings), `llm` (routing model), `hybrid` (default); below-threshold + LLM-failure fallback paths. Zero infra. |
+| [`agent-example-rag`](agent-example-rag/) | RAG — SKILL.md `knowledge-base` → `RagConfig`, `VectorStorePort.search` (in-memory backend), `RagEnricher` injects `RELEVANT_DOCUMENTS` into the prompt, respects `rag-max-results`/`rag-min-score`. Zero infra. |
 
 ### Scenario examples
 
