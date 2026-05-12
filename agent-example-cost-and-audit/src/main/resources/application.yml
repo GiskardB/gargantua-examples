@@ -1,0 +1,106 @@
+##############################################################################
+# Cost-tracking + Audit-trail example — agent configuration
+#
+# `cost-tracking.enabled: true` activates the CostTracker; `pricing` declares
+# per-model rates that the tests resolve via every supported key form
+# (nested `provider.model.suffix`, colon `provider:model:suffix`, and
+# model-only fallback).
+#
+# `audit.enabled: true` activates the AuditService; the in-memory
+# AuditStore from EmbeddedProfileAutoConfiguration receives the events.
+##############################################################################
+
+spring:
+  application:
+    name: agent-example-cost-and-audit
+  threads:
+    virtual:
+      enabled: true
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-cost-and-audit}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/agent-example-cost-and-audit}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+agent:
+  llm:
+    primary:
+      provider: ${LLM_PRIMARY_PROVIDER:openai}
+      model: ${LLM_PRIMARY_MODEL:gpt-4o}
+      api-key: ${LLM_PRIMARY_API_KEY:}
+      endpoint: ${LLM_PRIMARY_ENDPOINT:}
+    fallback:
+      provider: ${LLM_FALLBACK_PROVIDER:anthropic}
+      model: ${LLM_FALLBACK_MODEL:claude-sonnet-4-20250514}
+      api-key: ${LLM_FALLBACK_API_KEY:}
+      endpoint: ${LLM_FALLBACK_ENDPOINT:}
+    routing-model:
+      provider: ${LLM_ROUTING_PROVIDER:ollama}
+      model: ${LLM_ROUTING_MODEL:phi4-mini}
+      endpoint: ${LLM_ROUTING_ENDPOINT:http://localhost:11434}
+      temperature: 0.0
+      max-tokens: 50
+
+  skill:
+    path: classpath:skills/
+    hot-reload: false
+
+  routing:
+    strategy: hybrid
+    fallback-skill: default-skill
+
+  memory:
+    composer:
+      max-context-tokens: 3000
+
+  cost-tracking:
+    enabled: true
+    retention-days: 365
+    # Per-model pricing (USD per 1000 tokens). Three forms exercised by tests:
+    pricing:
+      # 1. Nested form: provider.model.suffix
+      "[openai.gpt-4o.input-per-1k-tokens]":  0.005
+      "[openai.gpt-4o.output-per-1k-tokens]": 0.015
+
+      # 2. Colon form: provider:model:suffix (same value, different shape)
+      "[anthropic:claude-sonnet-4-20250514:input-per-1k-tokens]":  0.003
+      "[anthropic:claude-sonnet-4-20250514:output-per-1k-tokens]": 0.015
+
+      # 3. Model-only fallback (no provider prefix): looked up when the
+      #    full provider+model key is absent.
+      "[gpt-4o-mini.input-per-1k-tokens]":  0.00015
+      "[gpt-4o-mini.output-per-1k-tokens]": 0.00060
+
+  audit:
+    enabled: true
+    retention-days: 365
+
+  chat-ui:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+    ai.gargantua.example.costandaudit: DEBUG
+    ai.gargantua.autoconfigure.CostTracker: DEBUG
+    ai.gargantua.autoconfigure.AuditService: DEBUG
